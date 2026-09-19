@@ -1,14 +1,19 @@
-import '@mantine/core/styles.css';
-import { MantineProvider, ColorSchemeScript } from '@mantine/core';
-import { Inter } from 'next/font/google';
-import type { Metadata } from 'next';
+import "@mantine/core/styles.css";
+import { MantineProvider, ColorSchemeScript } from "@mantine/core";
+import { Inter } from "next/font/google";
+import type { Metadata } from "next";
 import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'News Live Updates',
-  description: 'Real-time news updates with Mantine UI',
+  title: "LiveUpdate24",
+  description: "Real-time news updates with Mantine UI",
+  icons: {
+    icon: "/24.png",
+    shortcut: "/24.png",
+    apple: "/45.png",
+  },
 };
 
 export default function RootLayout({
@@ -21,6 +26,7 @@ export default function RootLayout({
       <head>
         <ColorSchemeScript />
       </head>
+
       <body className={inter.className}>
         <MantineProvider defaultColorScheme="light">
           {children}

@@ -9,9 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@mantine/core": "^9.4.1",
-    "@mantine/hooks": "^9.4.1",
-    "@tabler/icons-react": "^3.44.0",
+    "@base44/sdk": "^0.8.48",
+    "@mantine/core": "^9.6.1",
+    "@mantine/hooks": "^9.6.1",
+    "@tabler/icons-react": "^3.47.0",
     "@tailwindcss/line-clamp": "^0.4.4",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
