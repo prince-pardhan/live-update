@@ -68,7 +68,7 @@ export default function Home() {
           "-publishedAt",
           50
         );
-setNews(records as any[]);
+        setNews(records as any[]);
       } catch (error) {
         console.error("News fetch error:", error);
         setNews([]);
@@ -106,6 +106,29 @@ setNews(records as any[]);
     filteredNews.find((n) => n.isFeatured || n.isBreaking) || filteredNews[0];
   const remainingNews = filteredNews.filter((n) => n.id !== featuredNews?.id);
 
+  // Sidebar items (next 4 after featured)
+  const sidebarNews = remainingNews.slice(0, 4);
+  // Rest for Latest News grid
+  const latestNews = remainingNews.slice(4);
+
+  // Related news for article page
+  const relatedNews = useMemo(() => {
+    if (!selectedNews) return [];
+    const sameCategory = news.filter(
+      (n) =>
+        n.id !== selectedNews.id &&
+        n.category &&
+        selectedNews.category &&
+        n.category === selectedNews.category
+    );
+    const others = news.filter(
+      (n) =>
+        n.id !== selectedNews.id &&
+        (!selectedNews.category || n.category !== selectedNews.category)
+    );
+    return [...sameCategory, ...others].slice(0, 6);
+  }, [selectedNews, news]);
+
   const openNews = async (item: NewsItem) => {
     try {
       const fullRecord = await base44.entities.News.get(item.id);
@@ -128,11 +151,20 @@ setNews(records as any[]);
     });
   };
 
+  const timeAgo = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
+
   // ====================== FULL SCREEN ARTICLE ======================
   if (selectedNews) {
     return (
       <Box style={{ minHeight: "100vh", background: "#ffffff" }}>
-        {/* Top Red Bar */}
         <Box
           style={{
             background: "linear-gradient(90deg, #c92a2a, #e03131)",
@@ -232,12 +264,7 @@ setNews(records as any[]);
             )}
 
             {selectedNews.shortDescription && (
-              <Text
-                size="xl"
-                fw={500}
-                c="dark.6"
-                style={{ lineHeight: 1.65 }}
-              >
+              <Text size="xl" fw={500} c="dark.6" style={{ lineHeight: 1.65 }}>
                 {selectedNews.shortDescription}
               </Text>
             )}
@@ -251,6 +278,85 @@ setNews(records as any[]);
                 __html: (selectedNews.content || "").replace(/\n/g, "<br/>"),
               }}
             />
+
+            {relatedNews.length > 0 && (
+              <>
+                <Divider my="xl" />
+                <Box>
+                  <Title order={3} fw={800} mb="lg" style={{ letterSpacing: -0.3 }}>
+                    Related News
+                  </Title>
+                  <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="lg">
+                    {relatedNews.map((item) => (
+                      <Card
+                        key={item.id}
+                        padding="md"
+                        radius="md"
+                        withBorder
+                        shadow="sm"
+                        style={{
+                          cursor: "pointer",
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          transition: "transform 0.22s ease, box-shadow 0.22s ease",
+                          borderColor: "#e9ecef",
+                        }}
+                        onClick={() => openNews(item)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-5px)";
+                          e.currentTarget.style.boxShadow =
+                            "0 12px 28px rgba(0,0,0,0.12)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow = "";
+                        }}
+                      >
+                        <Card.Section>
+                          {item.image ? (
+                            <Image
+                              src={item.image}
+                              height={140}
+                              alt={item.title}
+                              fallbackSrc="https://placehold.co/600x400?text=News"
+                            />
+                          ) : (
+                            <Box
+                              h={140}
+                              bg="gray.1"
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <IconNews size={32} color="#ced4da" />
+                            </Box>
+                          )}
+                        </Card.Section>
+
+                        <Stack gap={6} mt="sm" style={{ flex: 1 }}>
+                          <Group gap={6}>
+                            {item.category && (
+                              <Badge color="red" variant="light" size="xs" radius="sm">
+                                {item.category}
+                              </Badge>
+                            )}
+                          </Group>
+                          <Text fw={700} size="sm" lineClamp={2} style={{ lineHeight: 1.4 }}>
+                            {item.title}
+                          </Text>
+                          <Text size="xs" c="dimmed" mt="auto">
+                            {formatDate(item.publishedAt)}
+                          </Text>
+                        </Stack>
+                      </Card>
+                    ))}
+                  </SimpleGrid>
+                </Box>
+              </>
+            )}
           </Stack>
         </Container>
       </Box>
@@ -259,34 +365,27 @@ setNews(records as any[]);
 
   // ====================== MAIN PAGE ======================
   return (
-    <Box style={{ minHeight: "100vh", background: "#f1f3f5" }}>
+    <Box style={{ minHeight: "100vh", background: "#ffffff" }}>
       {/* Breaking News Bar */}
       <Box
         style={{
-          background: "linear-gradient(90deg, #c92a2a, #e03131)",
-          padding: "9px 0",
+          background: "#e03131",
+          padding: "8px 0",
         }}
       >
         <Container size="lg">
           <Group gap="md" wrap="nowrap">
             <Badge
-              color="white"
+              color="dark"
               variant="filled"
-              c="red"
-              size="md"
-              radius="sm"
-              leftSection={<IconFlame size={13} />}
-              style={{ flexShrink: 0 }}
+              size="sm"
+              radius="xs"
+              leftSection={<IconFlame size={12} />}
+              style={{ flexShrink: 0, background: "#1a1a1a" }}
             >
               BREAKING
             </Badge>
-            <Text
-              size="sm"
-              c="white"
-              fw={500}
-              lineClamp={1}
-              style={{ flex: 1 }}
-            >
+            <Text size="sm" c="white" fw={500} lineClamp={1} style={{ flex: 1 }}>
               {news.find((n) => n.isBreaking)?.title ||
                 "Stay updated with the latest news from India and around the world"}
             </Text>
@@ -294,41 +393,35 @@ setNews(records as any[]);
         </Container>
       </Box>
 
-      {/* Sticky Header */}
+      {/* Header */}
       <Paper
-        shadow="sm"
         style={{
           position: "sticky",
           top: 0,
           zIndex: 200,
           background: "white",
+          borderBottom: "1px solid #eee",
         }}
       >
-        <Container size="lg" py="md">
-          <Group
-            justify="space-between"
-            mb="md"
-            wrap="wrap"
-            gap="md"
-            align="center"
-          >
+        <Container size="lg" py="sm">
+          <Group justify="space-between" align="center" wrap="nowrap" gap="md">
             {/* Logo */}
-            <Group gap={8} style={{ cursor: "pointer" }}>
+            <Group gap={8} style={{ cursor: "pointer", flexShrink: 0 }}>
               <Box
-                w={11}
-                h={11}
+                w={10}
+                h={10}
                 style={{
                   background: "#e03131",
                   borderRadius: "50%",
-                  boxShadow: "0 0 0 3px rgba(224,49,49,0.25)",
                 }}
               />
               <Title
-                order={2}
+                order={3}
                 style={{
                   fontWeight: 800,
-                  letterSpacing: -0.8,
-                  fontSize: "1.6rem",
+                  letterSpacing: -0.5,
+                  fontSize: "1.35rem",
+                  margin: 0,
                 }}
               >
                 LiveUpdate
@@ -337,61 +430,70 @@ setNews(records as any[]);
             </Group>
 
             {/* Search */}
-            <TextInput
-              placeholder="Search news..."
-              leftSection={<IconSearch size={18} stroke={1.5} />}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.currentTarget.value)}
-              radius="xl"
-              size="md"
-              styles={{
-                input: {
-                  border: "1px solid #dee2e6",
-                  background: "#f8f9fa",
-                },
-              }}
-              style={{ flex: 1, maxWidth: 420 }}
-              rightSection={
-                searchQuery ? (
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    onClick={() => setSearchQuery("")}
-                    size="sm"
-                    radius="xl"
-                  >
-                    <IconX size={14} />
-                  </ActionIcon>
-                ) : null
-              }
-            />
-          </Group>
-
-          {/* Categories */}
-          <ScrollArea type="never" offsetScrollbars={false}>
-            <Group gap={8} wrap="nowrap" pb={2}>
-              {categories.map((cat) => (
-                <Button
-                  key={cat}
-                  variant={activeCategory === cat ? "filled" : "light"}
-                  color={activeCategory === cat ? "red" : "gray"}
-                  size="compact-sm"
-                  radius="xl"
-                  onClick={() => setActiveCategory(cat)}
-                  style={{
-                    flexShrink: 0,
-                    fontWeight: activeCategory === cat ? 600 : 500,
-                  }}
-                >
-                  {cat}
-                </Button>
-              ))}
+            <Group gap="sm" style={{ flex: 1 }} justify="flex-end">
+              <TextInput
+                placeholder="Search news"
+                leftSection={<IconSearch size={16} stroke={1.5} />}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.currentTarget.value)}
+                radius="md"
+                size="sm"
+                styles={{
+                  input: {
+                    border: "1px solid #e0e0e0",
+                    background: "#fafafa",
+                  },
+                }}
+                style={{ maxWidth: 260, width: "100%" }}
+                rightSection={
+                  searchQuery ? (
+                    <ActionIcon
+                      variant="subtle"
+                      color="gray"
+                      onClick={() => setSearchQuery("")}
+                      size="sm"
+                    >
+                      <IconX size={14} />
+                    </ActionIcon>
+                  ) : null
+                }
+              />
             </Group>
-          </ScrollArea>
+          </Group>
         </Container>
+
+        {/* Categories - Same height & width */}
+        <Box style={{ borderTop: "1px solid #f0f0f0" }}>
+          <Container size="lg">
+            <ScrollArea type="never" offsetScrollbars={false}>
+              <Group gap={8} wrap="nowrap" py={12}>
+                {categories.map((cat) => (
+                  <Button
+                    key={cat}
+                    variant={activeCategory === cat ? "filled" : "light"}
+                    color={activeCategory === cat ? "red" : "gray"}
+                    size="sm"
+                    radius="md"
+                    onClick={() => setActiveCategory(cat)}
+                    style={{
+                      minWidth: 90,
+                      height: 34,
+                      fontWeight: activeCategory === cat ? 700 : 500,
+                      fontSize: 13,
+                      textTransform: "uppercase",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {cat}
+                  </Button>
+                ))}
+              </Group>
+            </ScrollArea>
+          </Container>
+        </Box>
       </Paper>
 
-      <Container size="lg" py={{ base: 24, sm: 36 }} pb={70}>
+      <Container size="lg" py={{ base: 20, sm: 28 }} pb={60}>
         {loading ? (
           <Center py={120}>
             <Stack align="center" gap="md">
@@ -424,117 +526,225 @@ setNews(records as any[]);
             </Stack>
           </Center>
         ) : (
-          <Stack gap={40}>
-            {/* Featured Hero Card */}
+          <Stack gap={36}>
+            {/* ========== HERO + SIDEBAR ========== */}
             {featuredNews && (
-              <Card
-                padding={0}
-                radius="lg"
-                shadow="md"
+              <Box
                 style={{
-                  overflow: "hidden",
-                  cursor: "pointer",
-                  transition: "transform 0.25s ease, box-shadow 0.25s ease",
+                  display: "grid",
+                  gridTemplateColumns: "1fr",
+                  gap: 24,
                 }}
-                onClick={() => openNews(featuredNews)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-4px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 16px 40px rgba(0,0,0,0.15)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "";
-                }}
+                className="hero-grid"
               >
-                <Box pos="relative">
-                  {featuredNews.image ? (
-                    <Image
-                      src={featuredNews.image}
-                      h={320}
-                      fit="cover"
-                      alt={featuredNews.title}
-                      style={{ minHeight: 240 }}
-                    />
-                  ) : (
+                {/* Left - Big Featured */}
+                <Card
+                  padding={0}
+                  radius="md"
+                  style={{
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    position: "relative",
+                  }}
+                  onClick={() => openNews(featuredNews)}
+                >
+                  <Box pos="relative">
+                    {featuredNews.image ? (
+                      <Image
+                        src={featuredNews.image}
+                        h={{ base: 280, sm: 420 }}
+                        fit="cover"
+                        alt={featuredNews.title}
+                      />
+                    ) : (
+                      <Box
+                        h={320}
+                        bg="gray.2"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <IconNews size={64} color="#adb5bd" />
+                      </Box>
+                    )}
+
                     <Box
-                      h={280}
-                      bg="gray.2"
+                      pos="absolute"
+                      bottom={0}
+                      left={0}
+                      right={0}
+                      p={{ base: "md", sm: "xl" }}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        background:
+                          "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 55%, transparent 100%)",
                       }}
                     >
-                      <IconNews size={64} color="#adb5bd" />
+                      <Group gap={8} mb={10}>
+                        {featuredNews.isBreaking && (
+                          <Badge color="red" size="sm" radius="sm">
+                            BREAKING
+                          </Badge>
+                        )}
+                        {featuredNews.category && (
+                          <Badge
+                            color="dark"
+                            variant="filled"
+                            size="sm"
+                            radius="sm"
+                            style={{ background: "rgba(0,0,0,0.5)" }}
+                          >
+                            {featuredNews.category}
+                          </Badge>
+                        )}
+                      </Group>
+
+                      <Title
+                        order={2}
+                        c="white"
+                        style={{
+                          fontSize: "clamp(18px, 3.5vw, 28px)",
+                          lineHeight: 1.3,
+                          fontWeight: 800,
+                        }}
+                        lineClamp={3}
+                      >
+                        {featuredNews.title}
+                      </Title>
                     </Box>
-                  )}
-
-                  {/* Dark Gradient Overlay */}
-                  <Box
-                    pos="absolute"
-                    bottom={0}
-                    left={0}
-                    right={0}
-                    p={{ base: "md", sm: "xl" }}
-                    style={{
-                      background:
-                        "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)",
-                      color: "white",
-                    }}
-                  >
-                    <Group gap={8} mb={8}>
-                      {featuredNews.isBreaking && (
-                        <Badge color="red" size="sm" radius="sm">
-                          BREAKING
-                        </Badge>
-                      )}
-                      {featuredNews.category && (
-                        <Badge
-                          color="dark"
-                          variant="filled"
-                          size="sm"
-                          radius="sm"
-                        >
-                          {featuredNews.category}
-                        </Badge>
-                      )}
-                    </Group>
-
-                    <Title
-                      order={2}
-                      c="white"
-                      style={{
-                        fontSize: "clamp(20px, 4vw, 34px)",
-                        lineHeight: 1.25,
-                        fontWeight: 800,
-                      }}
-                      lineClamp={3}
-                    >
-                      {featuredNews.title}
-                    </Title>
-
-                    <Text size="sm" c="gray.4" mt={8} visibleFrom="sm">
-                      {formatDate(featuredNews.publishedAt)}
-                    </Text>
                   </Box>
-                </Box>
-              </Card>
+                </Card>
+
+                {/* Right - Sidebar list */}
+                <Stack gap={0} style={{ borderLeft: "1px solid #f0f0f0" }} visibleFrom="md">
+                  {sidebarNews.map((item, index) => (
+                    <Box
+                      key={item.id}
+                      px="md"
+                      py="sm"
+                      style={{
+                        cursor: "pointer",
+                        borderBottom:
+                          index < sidebarNews.length - 1 ? "1px solid #f0f0f0" : "none",
+                        transition: "background 0.15s",
+                      }}
+                      onClick={() => openNews(item)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#fafafa";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <Group gap="sm" wrap="nowrap" align="flex-start">
+                        {item.image ? (
+                          <Image
+                            src={item.image}
+                            w={70}
+                            h={55}
+                            radius="sm"
+                            fit="cover"
+                            style={{ flexShrink: 0 }}
+                          />
+                        ) : (
+                          <Box
+                            w={70}
+                            h={55}
+                            bg="gray.1"
+                            style={{
+                              borderRadius: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <IconNews size={22} color="#ced4da" />
+                          </Box>
+                        )}
+                        <Box style={{ flex: 1, minWidth: 0 }}>
+                          {item.category && (
+                            <Text size="xs" c="red" fw={700} tt="uppercase" mb={2}>
+                              {item.category}
+                            </Text>
+                          )}
+                          <Text
+                            size="sm"
+                            fw={600}
+                            lineClamp={2}
+                            style={{ lineHeight: 1.35 }}
+                          >
+                            {item.title}
+                          </Text>
+                          <Text size="xs" c="dimmed" mt={4}>
+                            {timeAgo(item.publishedAt)}
+                          </Text>
+                        </Box>
+                      </Group>
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
             )}
 
-            {/* Latest News Section */}
+            {/* Mobile sidebar */}
+            <Stack gap="xs" hiddenFrom="md">
+              {sidebarNews.map((item) => (
+                <Card
+                  key={item.id}
+                  padding="sm"
+                  radius="md"
+                  withBorder
+                  style={{ cursor: "pointer" }}
+                  onClick={() => openNews(item)}
+                >
+                  <Group gap="sm" wrap="nowrap" align="flex-start">
+                    {item.image ? (
+                      <Image src={item.image} w={80} h={60} radius="sm" fit="cover" />
+                    ) : (
+                      <Box w={80} h={60} bg="gray.1" style={{ borderRadius: 4 }} />
+                    )}
+                    <Box style={{ flex: 1 }}>
+                      {item.category && (
+                        <Text size="xs" c="red" fw={700} tt="uppercase">
+                          {item.category}
+                        </Text>
+                      )}
+                      <Text size="sm" fw={600} lineClamp={2}>
+                        {item.title}
+                      </Text>
+                      <Text size="xs" c="dimmed" mt={2}>
+                        {timeAgo(item.publishedAt)}
+                      </Text>
+                    </Box>
+                  </Group>
+                </Card>
+              ))}
+            </Stack>
+
+            {/* ========== LATEST NEWS ========== */}
             <Box>
-              <Group justify="space-between" mb="lg" align="flex-end">
-                <Title order={3} fw={800} style={{ letterSpacing: -0.3 }}>
-                  Latest News
+              <Group justify="space-between" mb="md" align="flex-end">
+                <Title
+                  order={3}
+                  fw={800}
+                  style={{
+                    letterSpacing: -0.3,
+                    borderBottom: "3px solid #e03131",
+                    paddingBottom: 6,
+                    display: "inline-block",
+                  }}
+                >
+                  LATEST NEWS
                 </Title>
-                <Text size="sm" c="dimmed">
-                  {remainingNews.length} articles
+                <Text size="sm" c="red" fw={600} style={{ cursor: "pointer" }}>
+                  ALL ›
                 </Text>
               </Group>
 
               <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }} spacing="lg">
-                {remainingNews.map((item) => (
+                {(latestNews.length > 0 ? latestNews : remainingNews).map((item) => (
                   <Card
                     key={item.id}
                     padding="md"
@@ -546,14 +756,13 @@ setNews(records as any[]);
                       height: "100%",
                       display: "flex",
                       flexDirection: "column",
-                      transition: "transform 0.22s ease, box-shadow 0.22s ease",
-                      borderColor: "#e9ecef",
+                      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                      borderColor: "#eee",
                     }}
                     onClick={() => openNews(item)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-5px)";
-                      e.currentTarget.style.boxShadow =
-                        "0 12px 28px rgba(0,0,0,0.12)";
+                      e.currentTarget.style.transform = "translateY(-4px)";
+                      e.currentTarget.style.boxShadow = "0 10px 24px rgba(0,0,0,0.1)";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = "translateY(0)";
@@ -564,13 +773,13 @@ setNews(records as any[]);
                       {item.image ? (
                         <Image
                           src={item.image}
-                          height={168}
+                          height={160}
                           alt={item.title}
                           fallbackSrc="https://placehold.co/600x400?text=News"
                         />
                       ) : (
                         <Box
-                          h={168}
+                          h={160}
                           bg="gray.1"
                           style={{
                             display: "flex",
@@ -583,7 +792,7 @@ setNews(records as any[]);
                       )}
                     </Card.Section>
 
-                    <Stack gap={8} mt="md" style={{ flex: 1 }}>
+                    <Stack gap={6} mt="md" style={{ flex: 1 }}>
                       <Group gap={6}>
                         {item.category && (
                           <Badge color="red" variant="light" size="xs" radius="sm">
@@ -597,22 +806,17 @@ setNews(records as any[]);
                         )}
                       </Group>
 
-                      <Text
-                        fw={700}
-                        size="sm"
-                        lineClamp={2}
-                        style={{ lineHeight: 1.4 }}
-                      >
+                      <Text fw={700} size="sm" lineClamp={2} style={{ lineHeight: 1.4 }}>
                         {item.title}
                       </Text>
 
-                      <Text size="xs" c="dimmed" lineClamp={2} style={{ lineHeight: 1.5 }}>
+                      <Text size="xs" c="dimmed" lineClamp={2}>
                         {item.shortDescription}
                       </Text>
 
-                      <Group justify="space-between" mt="auto" pt={6}>
+                      <Group justify="space-between" mt="auto" pt={4}>
                         <Text size="xs" c="dimmed">
-                          {formatDate(item.publishedAt)}
+                          {timeAgo(item.publishedAt)}
                         </Text>
                         <Text size="xs" c="red" fw={600}>
                           Read more →
@@ -630,8 +834,8 @@ setNews(records as any[]);
       {/* Footer */}
       <Box
         style={{
-          background: "#212529",
-          padding: "32px 0",
+          background: "#1a1a1a",
+          padding: "28px 0",
           marginTop: 20,
         }}
       >
@@ -639,19 +843,14 @@ setNews(records as any[]);
           <Group justify="space-between" wrap="wrap" gap="md">
             <Group gap={8}>
               <Box
-                w={10}
-                h={10}
-                style={{
-                  background: "#e03131",
-                  borderRadius: "50%",
-                }}
+                w={9}
+                h={9}
+                style={{ background: "#e03131", borderRadius: "50%" }}
               />
-              <a href="https://i24.base44.app" target="_blank" rel="noopener noreferrer">
-                <Text c="white" fw={700} size="lg">
-                  LiveUpdate
-                  <span style={{ color: "#fa5252" }}>24</span>
-                </Text>
-              </a>
+              <Text c="white" fw={700} size="lg">
+                LiveUpdate
+                <span style={{ color: "#fa5252" }}>24</span>
+              </Text>
             </Group>
             <Text size="sm" c="dimmed">
               © 2026 LiveUpdate24 • Powered by Base44
@@ -659,6 +858,14 @@ setNews(records as any[]);
           </Group>
         </Container>
       </Box>
+
+      <style jsx global>{`
+        @media (min-width: 992px) {
+          .hero-grid {
+            grid-template-columns: 1.6fr 1fr !important;
+          }
+        }
+      `}</style>
     </Box>
   );
 }
