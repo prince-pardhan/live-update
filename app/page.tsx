@@ -63,11 +63,8 @@ export default function Home() {
     const fetchNews = async () => {
       try {
         setLoading(true);
-        const records = await base44.entities.News.filter(
-          { status: "published" },
-          "-publishedAt",
-          50
-        );
+        // API call
+        const records = await base44.entities.News.list();
         setNews(records as any[]);
       } catch (error) {
         console.error("News fetch error:", error);
