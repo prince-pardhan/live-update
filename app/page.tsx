@@ -32,9 +32,19 @@ import {
 } from "@tabler/icons-react";
 import { createClient } from "@base44/sdk";
 
-// Base44 client
-const base44 = createClient({
+// ========== BOTH Base44 CLIENTS ==========
+const base44_1 = createClient({
   appId: "6a9fc3ec7fb02e0fe4f0af78",
+  headers: {
+    Authorization: "Bearer YOUR_PERSONAL_ACCESS_TOKEN",
+  },
+});
+
+const base44_2 = createClient({
+  appId: "6ab215c62876b1f9358b1800",
+  headers: {
+    Authorization: "Bearer YOUR_PERSONAL_ACCESS_TOKEN",
+  },
 });
 
 interface NewsItem {
@@ -50,6 +60,7 @@ interface NewsItem {
   slug?: string;
   status?: string;
   author?: string;
+  _source?: "app1" | "app2"; // track which API it came from
 }
 
 export default function Home() {
@@ -63,9 +74,41 @@ export default function Home() {
     const fetchNews = async () => {
       try {
         setLoading(true);
-        // API call
-        const records = await base44.entities.News.list();
-        setNews(records as any[]);
+
+        // ========== BOTH APIs CALL ==========
+        const [records1, records2] = await Promise.all([
+          base44_1.entities.News.list().catch((err) => {
+            console.error("API 1 error:", err);
+            return [];
+          }),
+          base44_2.entities.News.list().catch((err) => {
+            console.error("API 2 error:", err);
+            return [];
+          }),
+        ]);
+
+        // Mark source + merge
+        const fromApp1 = (records1 as any[]).map((item) => ({
+          ...item,
+          _source: "app1" as const,
+        }));
+        const fromApp2 = (records2 as any[]).map((item) => ({
+          ...item,
+          _source: "app2" as const,
+        }));
+
+        // Combine both results
+        const combined = [...fromApp1, ...fromApp2];
+
+        // Optional: remove duplicates by id (keep first)
+        const uniqueMap = new Map<string, NewsItem>();
+        combined.forEach((item) => {
+          if (!uniqueMap.has(item.id)) {
+            uniqueMap.set(item.id, item);
+          }
+        });
+
+        setNews(Array.from(uniqueMap.values()));
       } catch (error) {
         console.error("News fetch error:", error);
         setNews([]);
@@ -73,6 +116,7 @@ export default function Home() {
         setLoading(false);
       }
     };
+
     fetchNews();
   }, []);
 
@@ -128,7 +172,20 @@ export default function Home() {
 
   const openNews = async (item: NewsItem) => {
     try {
-      const fullRecord = await base44.entities.News.get(item.id);
+      // Try the correct client based on source
+      let fullRecord;
+
+      if (item._source === "app2") {
+        fullRecord = await base44_2.entities.News.get(item.id);
+      } else {
+        // default to app1, fallback to app2
+        try {
+          fullRecord = await base44_1.entities.News.get(item.id);
+        } catch {
+          fullRecord = await base44_2.entities.News.get(item.id);
+        }
+      }
+
       setSelectedNews(fullRecord);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
@@ -459,7 +516,7 @@ export default function Home() {
           </Group>
         </Container>
 
-        {/* Categories - Same height & width */}
+        {/* Categories */}
         <Box style={{ borderTop: "1px solid #f0f0f0" }}>
           <Container size="lg">
             <ScrollArea type="never" offsetScrollbars={false}>
