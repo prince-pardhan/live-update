@@ -10,9 +10,9 @@ export const metadata: Metadata = {
   title: "LiveUpdate24",
   description: "Real-time news updates with Mantine UI",
   icons: {
-    icon: "/24.png",
-    shortcut: "/24.png",
-    apple: "/45.png",
+    icon: "/i.png",
+    shortcut: "/i.png",
+    apple: "/i.png",
   },
 };
 
