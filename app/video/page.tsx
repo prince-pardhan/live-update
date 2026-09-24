@@ -32,16 +32,9 @@ import {
 } from "@tabler/icons-react";
 import { createClient } from "@base44/sdk";
 
-// ========== BOTH Base44 CLIENTS ==========
-const base44_1 = createClient({
-  appId: "6a9fc3ec7fb02e0fe4f0af78",
-  headers: {
-    Authorization: "Bearer YOUR_PERSONAL_ACCESS_TOKEN",
-  },
-});
-
-const base44_2 = createClient({
-  appId: "6ab215c62876b1f9358b1800",
+// ========== SINGLE Base44 CLIENT ==========
+const base44 = createClient({
+  appId: "6ab4c3844cd0d31fd45fd867",
   headers: {
     Authorization: "Bearer YOUR_PERSONAL_ACCESS_TOKEN",
   },
@@ -60,7 +53,6 @@ interface NewsItem {
   slug?: string;
   status?: string;
   author?: string;
-  _source?: "app1" | "app2"; // track which API it came from
 }
 
 export default function Home() {
@@ -75,40 +67,12 @@ export default function Home() {
       try {
         setLoading(true);
 
-        // ========== BOTH APIs CALL ==========
-        const [records1, records2] = await Promise.all([
-          base44_1.entities.News.list().catch((err) => {
-            console.error("API 1 error:", err);
-            return [];
-          }),
-          base44_2.entities.News.list().catch((err) => {
-            console.error("API 2 error:", err);
-            return [];
-          }),
-        ]);
-
-        // Mark source + merge
-        const fromApp1 = (records1 as any[]).map((item) => ({
-          ...item,
-          _source: "app1" as const,
-        }));
-        const fromApp2 = (records2 as any[]).map((item) => ({
-          ...item,
-          _source: "app2" as const,
-        }));
-
-        // Combine both results
-        const combined = [...fromApp1, ...fromApp2];
-
-        // Optional: remove duplicates by id (keep first)
-        const uniqueMap = new Map<string, NewsItem>();
-        combined.forEach((item) => {
-          if (!uniqueMap.has(item.id)) {
-            uniqueMap.set(item.id, item);
-          }
+        const records = await base44.entities.News.list().catch((err) => {
+          console.error("API error:", err);
+          return [];
         });
 
-        setNews(Array.from(uniqueMap.values()));
+        setNews(records as NewsItem[]);
       } catch (error) {
         console.error("News fetch error:", error);
         setNews([]);
@@ -172,21 +136,8 @@ export default function Home() {
 
   const openNews = async (item: NewsItem) => {
     try {
-      // Try the correct client based on source
-      let fullRecord;
-
-      if (item._source === "app2") {
-        fullRecord = await base44_2.entities.News.get(item.id);
-      } else {
-        // default to app1, fallback to app2
-        try {
-          fullRecord = await base44_1.entities.News.get(item.id);
-        } catch {
-          fullRecord = await base44_2.entities.News.get(item.id);
-        }
-      }
-
-      setSelectedNews(fullRecord);
+      const fullRecord = await base44.entities.News.get(item.id);
+      setSelectedNews(fullRecord as NewsItem);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       setSelectedNews(item);
@@ -480,14 +431,11 @@ export default function Home() {
               >
                 LiveUpdate
                 <span style={{ color: "#e03131" }}>24</span>
-
               </Title>
-             
             </Group>
 
             {/* Search */}
             <Group gap="sm" style={{ flex: 1 }} justify="flex-end">
-              
               <TextInput
                 placeholder="Search news"
                 leftSection={<IconSearch size={16} stroke={1.5} />}
@@ -521,15 +469,15 @@ export default function Home() {
 
         {/* Categories */}
         <Box style={{ borderTop: "1px solid #f0f0f0" }}>
-          <Group justify="flex-start"  gap={12}> <Button component="a" href="/paper" target="_blank" >
-                Paper
-              </Button> 
-              
-              <Button component="a" href="/video" target="_blank">
-                Paper-2
-              </Button>
-              </Group>
-          
+          <Group justify="flex-start" gap={12}>
+            <Button component="a" href="/paper">
+              Paper
+            </Button>
+            <Button component="a" href="/video">
+              Video
+            </Button>
+          </Group>
+
           <Container size="lg">
             <ScrollArea type="never" offsetScrollbars={false}>
               <Group gap={8} wrap="nowrap" py={12}>
