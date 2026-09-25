@@ -528,6 +528,9 @@ export default function Home() {
               <Button component="a" href="/video" target="_blank">
                 Paper-2
               </Button>
+              <Button component="a" href="/chap" target="_blank">
+                Paper-3
+              </Button>
               </Group>
           
           <Container size="lg">
