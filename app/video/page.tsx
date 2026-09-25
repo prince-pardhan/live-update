@@ -16,8 +16,9 @@ import {
   Loader,
   Button,
   Paper,
+  ActionIcon,
 } from "@mantine/core";
-import { IconFlame, IconArrowLeft } from "@tabler/icons-react";
+import { IconFlame, IconArrowLeft, IconX, IconCalendar } from "@tabler/icons-react";
 import { createClient } from "@base44/sdk";
 import Link from "next/link";
 
@@ -40,11 +41,13 @@ interface NewsItem {
   isBreaking?: boolean;
   isFeatured?: boolean;
   author?: string;
+  slug?: string;
 }
 
 export default function NewspaperPage() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -71,12 +74,231 @@ export default function NewspaperPage() {
     });
   };
 
+  const openNews = async (item: NewsItem) => {
+    try {
+      const fullRecord = await base44.entities.News.get(item.id);
+      setSelectedNews(fullRecord as NewsItem);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      setSelectedNews(item);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const closeNews = () => setSelectedNews(null);
+
+  // Related news
+  const relatedNews = useMemo(() => {
+    if (!selectedNews) return [];
+    const sameCategory = news.filter(
+      (n) =>
+        n.id !== selectedNews.id &&
+        n.category &&
+        selectedNews.category &&
+        n.category === selectedNews.category
+    );
+    const others = news.filter(
+      (n) =>
+        n.id !== selectedNews.id &&
+        (!selectedNews.category || n.category !== selectedNews.category)
+    );
+    return [...sameCategory, ...others].slice(0, 6);
+  }, [selectedNews, news]);
+
   // Group news for newspaper layout
   const featured = news.find((n) => n.isFeatured || n.isBreaking) || news[0];
   const topNews = news.filter((n) => n.id !== featured?.id).slice(0, 4);
   const goodNews = news.filter((n) => n.id !== featured?.id).slice(4, 8);
   const moreNews = news.filter((n) => n.id !== featured?.id).slice(8, 14);
 
+  // ====================== FULL ARTICLE VIEW ======================
+  if (selectedNews) {
+    return (
+      <Box
+        style={{
+          minHeight: "100vh",
+          background: "#f8f5f0",
+          fontFamily: "'Times New Roman', Times, serif",
+        }}
+      >
+        {/* Top bar */}
+        <Box bg="#1a1a1a" py={8}>
+          <Container size="md">
+            <Group justify="space-between">
+              <Text size="sm" c="white" fw={600} lineClamp={1}>
+                {selectedNews.title}
+              </Text>
+              <ActionIcon variant="subtle" color="white" onClick={closeNews}>
+                <IconX size={20} />
+              </ActionIcon>
+            </Group>
+          </Container>
+        </Box>
+
+        <Container size="md" py={{ base: 30, sm: 50 }}>
+          <Button
+            variant="subtle"
+            color="dark"
+            leftSection={<IconArrowLeft size={18} />}
+            mb="xl"
+            onClick={closeNews}
+            radius={0}
+            style={{ fontFamily: "sans-serif" }}
+          >
+            Back to Newspaper
+          </Button>
+
+          <Stack gap="lg">
+            <Group gap="sm">
+              {selectedNews.category && (
+                <Badge color="red" variant="filled" size="lg" radius={0}>
+                  {selectedNews.category}
+                </Badge>
+              )}
+              {selectedNews.isBreaking && (
+                <Badge
+                  color="red"
+                  size="lg"
+                  radius={0}
+                  leftSection={<IconFlame size={14} />}
+                >
+                  BREAKING
+                </Badge>
+              )}
+            </Group>
+
+            <Title
+              order={1}
+              style={{
+                fontFamily: "'Times New Roman', Times, serif",
+                fontSize: "clamp(28px, 5vw, 42px)",
+                lineHeight: 1.2,
+                fontWeight: 800,
+              }}
+            >
+              {selectedNews.title}
+            </Title>
+
+            <Group gap="md" c="dimmed">
+              <Group gap={6}>
+                <IconCalendar size={16} />
+                <Text size="sm">{formatDate(selectedNews.publishedAt)}</Text>
+              </Group>
+              {selectedNews.author && (
+                <Text size="sm" fw={600}>
+                  By {selectedNews.author}
+                </Text>
+              )}
+            </Group>
+
+            {selectedNews.image && (
+              <Image
+                src={selectedNews.image}
+                radius={0}
+                alt={selectedNews.title}
+                mah={440}
+                fit="cover"
+                style={{ border: "1px solid #ccc" }}
+              />
+            )}
+
+            {selectedNews.shortDescription && (
+              <Text
+                size="xl"
+                fw={500}
+                style={{ lineHeight: 1.65, fontStyle: "italic" }}
+              >
+                {selectedNews.shortDescription}
+              </Text>
+            )}
+
+            <Divider my="sm" color="#1a1a1a" size={2} />
+
+            <Text
+              size="lg"
+              style={{ whiteSpace: "pre-wrap", lineHeight: 1.85 }}
+              dangerouslySetInnerHTML={{
+                __html: (selectedNews.content || "").replace(/\n/g, "<br/>"),
+              }}
+            />
+
+            {/* Related News */}
+            {relatedNews.length > 0 && (
+              <>
+                <Divider my="xl" size={2} color="#1a1a1a" />
+                <Box>
+                  <Title
+                    order={3}
+                    mb="lg"
+                    style={{
+                      fontFamily: "'Times New Roman', Times, serif",
+                      borderBottom: "3px solid #1a1a1a",
+                      paddingBottom: 6,
+                      display: "inline-block",
+                    }}
+                  >
+                    Related News
+                  </Title>
+                  <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="lg">
+                    {relatedNews.map((item) => (
+                      <Paper
+                        key={item.id}
+                        p="md"
+                        radius={0}
+                        withBorder
+                        style={{
+                          cursor: "pointer",
+                          borderColor: "#ccc",
+                          background: "white",
+                          transition: "transform 0.2s",
+                        }}
+                        onClick={() => openNews(item)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-4px)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                        }}
+                      >
+                        {item.image && (
+                          <Image
+                            src={item.image}
+                            height={120}
+                            radius={0}
+                            mb="sm"
+                            alt={item.title}
+                            style={{ border: "1px solid #ddd" }}
+                          />
+                        )}
+                        {item.category && (
+                          <Text size="xs" fw={700} tt="uppercase" c="red" mb={4}>
+                            {item.category}
+                          </Text>
+                        )}
+                        <Text
+                          fw={700}
+                          size="sm"
+                          lineClamp={2}
+                          style={{
+                            fontFamily: "'Times New Roman', Times, serif",
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {item.title}
+                        </Text>
+                      </Paper>
+                    ))}
+                  </SimpleGrid>
+                </Box>
+              </>
+            )}
+          </Stack>
+        </Container>
+      </Box>
+    );
+  }
+
+  // ====================== NEWSPAPER LAYOUT ======================
   if (loading) {
     return (
       <Center h="100vh" bg="#f8f5f0">
@@ -92,7 +314,7 @@ export default function NewspaperPage() {
     <Box
       style={{
         minHeight: "100vh",
-        background: "#f8f5f0", // classic newspaper paper color
+        background: "#f8f5f0",
         fontFamily: "'Times New Roman', Times, serif",
       }}
     >
@@ -202,11 +424,15 @@ export default function NewspaperPage() {
 
         {/* ========== MAIN NEWSPAPER GRID ========== */}
         <SimpleGrid cols={{ base: 1, md: 3 }} spacing="xl">
-          {/* LEFT COLUMN - Featured + Top News */}
+          {/* LEFT COLUMN */}
           <Box style={{ gridColumn: "span 2" }}>
             {/* Lead Story */}
             {featured && (
-              <Box mb="xl">
+              <Box
+                mb="xl"
+                style={{ cursor: "pointer" }}
+                onClick={() => openNews(featured)}
+              >
                 {featured.image && (
                   <Image
                     src={featured.image}
@@ -242,9 +468,14 @@ export default function NewspaperPage() {
                 </Title>
                 <Text size="md" style={{ lineHeight: 1.6 }}>
                   {featured.shortDescription ||
-                    featured.content?.slice(0, 280) + "..."}
+                    (featured.content
+                      ? featured.content.slice(0, 280) + "..."
+                      : "")}
                 </Text>
-                <Text size="xs" c="dimmed" mt="sm" fw={600}>
+                <Text size="sm" c="red" fw={700} mt="sm">
+                  Read more →
+                </Text>
+                <Text size="xs" c="dimmed" mt={4} fw={600}>
                   {featured.author ? `By ${featured.author}` : ""} •{" "}
                   {formatDate(featured.publishedAt)}
                 </Text>
@@ -253,7 +484,7 @@ export default function NewspaperPage() {
 
             <Divider size={2} color="#1a1a1a" mb="xl" />
 
-            {/* TOP NEWS Section */}
+            {/* TOP NEWS */}
             <Title
               order={3}
               mb="md"
@@ -269,7 +500,11 @@ export default function NewspaperPage() {
 
             <Stack gap="lg">
               {topNews.map((item) => (
-                <Box key={item.id}>
+                <Box
+                  key={item.id}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => openNews(item)}
+                >
                   <Group gap="md" align="flex-start" wrap="nowrap">
                     {item.image && (
                       <Image
@@ -300,6 +535,9 @@ export default function NewspaperPage() {
                       <Text size="sm" c="dimmed" mt={4} lineClamp={2}>
                         {item.shortDescription}
                       </Text>
+                      <Text size="xs" c="red" fw={700} mt={6}>
+                        Read more →
+                      </Text>
                     </Box>
                   </Group>
                 </Box>
@@ -325,7 +563,11 @@ export default function NewspaperPage() {
               </Title>
               <Stack gap="md">
                 {goodNews.map((item) => (
-                  <Box key={item.id}>
+                  <Box
+                    key={item.id}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => openNews(item)}
+                  >
                     <Text
                       fw={700}
                       size="sm"
@@ -339,13 +581,16 @@ export default function NewspaperPage() {
                     <Text size="xs" c="dimmed" mt={2} lineClamp={2}>
                       {item.shortDescription}
                     </Text>
+                    <Text size="xs" c="red" fw={700} mt={4}>
+                      Read more →
+                    </Text>
                     <Divider mt="sm" color="#ddd" />
                   </Box>
                 ))}
               </Stack>
             </Box>
 
-            {/* MORE NEWS */}
+            {/* IN BRIEF */}
             <Box>
               <Title
                 order={3}
@@ -368,7 +613,9 @@ export default function NewspaperPage() {
                       fontFamily: "'Times New Roman', Times, serif",
                       borderBottom: "1px dotted #aaa",
                       paddingBottom: 8,
+                      cursor: "pointer",
                     }}
+                    onClick={() => openNews(item)}
                   >
                     <strong>{item.title}</strong>
                   </Text>
@@ -378,7 +625,7 @@ export default function NewspaperPage() {
           </Stack>
         </SimpleGrid>
 
-        {/* Footer of newspaper */}
+        {/* Footer */}
         <Divider my={40} size={2} color="#1a1a1a" />
         <Text ta="center" size="xs" c="dimmed" fw={600} tt="uppercase">
           © 2026 LiveUpdate24 • All rights reserved • Printed digitally
