@@ -431,7 +431,7 @@ export default function Home() {
             </Text>
             <Text size="sm">✦</Text>
             <Text size="sm" fw={600}>
-              LIVEUPDATE24.COM
+              LIVEUPDATE24.online
             </Text>
             <Text size="sm">✦</Text>
             <Text size="sm" fw={600}>

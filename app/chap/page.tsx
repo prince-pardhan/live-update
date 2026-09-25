@@ -19,11 +19,11 @@ import {
   ActionIcon,
   Grid,
 } from "@mantine/core";
-import { IconFlame, IconArrowLeft, IconX, IconCalendar } from "@tabler/icons-react";
+import { IconFlame, IconArrowLeft, IconX, IconCalendar, IconArrowRight } from "@tabler/icons-react";
 import { createClient } from "@base44/sdk";
 import Link from "next/link";
 
-// ========== NEW Base44 CLIENT ==========
+// ========== Base44 CLIENT ==========
 const base44 = createClient({
   appId: "6ab4c278a87c64b26180c135",
   headers: {
@@ -43,6 +43,35 @@ interface NewsItem {
   isFeatured?: boolean;
   author?: string;
   slug?: string;
+}
+
+// ---------- Shared tokens ----------
+const INK = "#1a1a1a";
+const PAPER = "#f8f5f0";
+const RULE = "#d8d2c4";
+const ACCENT = "#a4292c"; // single strong editorial red — masthead accent
+const SERIF = "'Times New Roman', Times, serif";
+
+// A single, reusable "Read more" affordance so every card in the page
+// uses the exact same visual language instead of ad-hoc text links.
+function ReadMore({ compact = false }: { compact?: boolean }) {
+  return (
+    <Group
+      gap={6}
+      mt={compact ? 8 : 12}
+      className="read-more"
+      style={{ color: ACCENT }}
+    >
+      <Text
+        size={compact ? "xs" : "sm"}
+        fw={700}
+        style={{ fontFamily: "sans-serif", letterSpacing: 0.2 }}
+      >
+        Read more
+      </Text>
+      <IconArrowRight size={compact ? 13 : 15} stroke={2.5} className="read-more-arrow" />
+    </Group>
+  );
 }
 
 export default function NewspaperPage() {
@@ -105,7 +134,6 @@ export default function NewspaperPage() {
     return [...sameCategory, ...others].slice(0, 6);
   }, [selectedNews, news]);
 
-  // Layout groups matching the template
   const featured = news.find((n) => n.isFeatured || n.isBreaking) || news[0];
   const sideStory = news.filter((n) => n.id !== featured?.id)[0];
   const moreStories = news.filter((n) => n.id !== featured?.id && n.id !== sideStory?.id).slice(0, 3);
@@ -113,30 +141,37 @@ export default function NewspaperPage() {
     (n) => n.id !== featured?.id && n.id !== sideStory?.id && !moreStories.find((m) => m.id === n.id)
   ).slice(0, 4);
 
+  // Shared hover styling for anything clickable, injected once.
+  const HoverStyles = () => (
+    <style>{`
+      .news-card, .story-block { transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease; }
+      .news-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.10); border-color: ${INK} !important; }
+      .story-block:hover .story-title { color: ${ACCENT}; }
+      .story-title { transition: color 140ms ease; }
+      .read-more-arrow { transition: transform 140ms ease; }
+      .news-card:hover .read-more-arrow, .story-block:hover .read-more-arrow { transform: translateX(3px); }
+    `}</style>
+  );
+
   // ====================== FULL ARTICLE VIEW ======================
   if (selectedNews) {
     return (
-      <Box
-        style={{
-          minHeight: "100vh",
-          background: "#f8f5f0",
-          fontFamily: "'Times New Roman', Times, serif",
-        }}
-      >
-        <Box bg="#1a1a1a" py={8}>
+      <Box style={{ minHeight: "100vh", background: PAPER, fontFamily: SERIF }}>
+        <HoverStyles />
+        <Box bg={INK} py={10} style={{ borderBottom: `3px solid ${ACCENT}` }}>
           <Container size="md">
-            <Group justify="space-between">
-              <Text size="sm" c="white" fw={600} lineClamp={1}>
+            <Group justify="space-between" wrap="nowrap">
+              <Text size="sm" c="white" fw={600} lineClamp={1} style={{ fontFamily: "sans-serif" }}>
                 {selectedNews.title}
               </Text>
-              <ActionIcon variant="subtle" color="white" onClick={closeNews}>
+              <ActionIcon variant="subtle" color="white" onClick={closeNews} aria-label="Close article">
                 <IconX size={20} />
               </ActionIcon>
             </Group>
           </Container>
         </Box>
 
-        <Container size="md" py={{ base: 30, sm: 50 }}>
+        <Container size="md" py={{ base: 30, sm: 56 }}>
           <Button
             variant="subtle"
             color="dark"
@@ -152,13 +187,19 @@ export default function NewspaperPage() {
           <Stack gap="lg">
             <Group gap="sm">
               {selectedNews.category && (
-                <Badge color="dark" variant="filled" size="lg" radius={0}>
+                <Badge color="dark" variant="filled" size="lg" radius={0} style={{ fontFamily: "sans-serif" }}>
                   {selectedNews.category}
                 </Badge>
               )}
               {selectedNews.isBreaking && (
-                <Badge color="red" size="lg" radius={0} leftSection={<IconFlame size={14} />}>
-                  BREAKING
+                <Badge
+                  color={ACCENT}
+                  size="lg"
+                  radius={0}
+                  leftSection={<IconFlame size={14} />}
+                  style={{ fontFamily: "sans-serif" }}
+                >
+                  Breaking
                 </Badge>
               )}
             </Group>
@@ -166,16 +207,17 @@ export default function NewspaperPage() {
             <Title
               order={1}
               style={{
-                fontFamily: "'Times New Roman', Times, serif",
-                fontSize: "clamp(28px, 5vw, 44px)",
-                lineHeight: 1.15,
+                fontFamily: SERIF,
+                fontSize: "clamp(28px, 5vw, 46px)",
+                lineHeight: 1.12,
                 fontWeight: 800,
+                letterSpacing: "-0.5px",
               }}
             >
               {selectedNews.title}
             </Title>
 
-            <Group gap="md" c="dimmed">
+            <Group gap="lg" c="dimmed" style={{ fontFamily: "sans-serif" }}>
               <Group gap={6}>
                 <IconCalendar size={16} />
                 <Text size="sm">{formatDate(selectedNews.publishedAt)}</Text>
@@ -192,9 +234,9 @@ export default function NewspaperPage() {
                 src={selectedNews.image}
                 radius={0}
                 alt={selectedNews.title}
-                mah={420}
+                mah={440}
                 fit="cover"
-                style={{ border: "1px solid #ccc" }}
+                style={{ border: `1px solid ${RULE}` }}
               />
             )}
 
@@ -204,11 +246,11 @@ export default function NewspaperPage() {
               </Text>
             )}
 
-            <Divider my="sm" color="#1a1a1a" size={2} />
+            <Divider my="sm" color={INK} size={2} />
 
             <Text
               size="lg"
-              style={{ whiteSpace: "pre-wrap", lineHeight: 1.85 }}
+              style={{ whiteSpace: "pre-wrap", lineHeight: 1.9, maxWidth: 720 }}
               dangerouslySetInnerHTML={{
                 __html: (selectedNews.content || "").replace(/\n/g, "<br/>"),
               }}
@@ -216,13 +258,13 @@ export default function NewspaperPage() {
 
             {relatedNews.length > 0 && (
               <>
-                <Divider my="xl" size={2} color="#1a1a1a" />
+                <Divider my="xl" size={2} color={INK} />
                 <Title
                   order={3}
                   mb="lg"
                   style={{
-                    fontFamily: "'Times New Roman', Times, serif",
-                    borderBottom: "3px solid #1a1a1a",
+                    fontFamily: SERIF,
+                    borderBottom: `3px solid ${ACCENT}`,
                     paddingBottom: 6,
                     display: "inline-block",
                   }}
@@ -233,14 +275,11 @@ export default function NewspaperPage() {
                   {relatedNews.map((item) => (
                     <Paper
                       key={item.id}
+                      className="news-card"
                       p="md"
                       radius={0}
                       withBorder
-                      style={{
-                        cursor: "pointer",
-                        borderColor: "#ccc",
-                        background: "white",
-                      }}
+                      style={{ cursor: "pointer", borderColor: RULE, background: "white" }}
                       onClick={() => openNews(item)}
                     >
                       {item.image && (
@@ -250,17 +289,13 @@ export default function NewspaperPage() {
                           radius={0}
                           mb="sm"
                           alt={item.title}
-                          style={{ border: "1px solid #ddd" }}
+                          style={{ border: `1px solid ${RULE}` }}
                         />
                       )}
-                      <Text
-                        fw={700}
-                        size="sm"
-                        lineClamp={2}
-                        style={{ fontFamily: "'Times New Roman', Times, serif" }}
-                      >
+                      <Text fw={700} size="sm" lineClamp={2} style={{ fontFamily: SERIF }}>
                         {item.title}
                       </Text>
+                      <ReadMore compact />
                     </Paper>
                   ))}
                 </SimpleGrid>
@@ -272,35 +307,33 @@ export default function NewspaperPage() {
     );
   }
 
-  // ====================== NEWSPAPER FRONT PAGE (matches your template) ======================
+  // ====================== NEWSPAPER FRONT PAGE ======================
   if (loading) {
     return (
-      <Center h="100vh" bg="#f8f5f0">
+      <Center h="100vh" bg={PAPER}>
         <Stack align="center">
           <Loader color="dark" size="lg" />
-          <Text c="dimmed">Printing today’s edition...</Text>
+          <Text c="dimmed" style={{ fontFamily: "sans-serif" }}>
+            Printing today's edition...
+          </Text>
         </Stack>
       </Center>
     );
   }
 
   return (
-    <Box
-      style={{
-        minHeight: "100vh",
-        background: "#f8f5f0",
-        fontFamily: "'Times New Roman', Times, serif",
-      }}
-    >
+    <Box style={{ minHeight: "100vh", background: PAPER, fontFamily: SERIF }}>
+      <HoverStyles />
+
       {/* Top date bar */}
-      <Box bg="#1a1a1a" py={6}>
+      <Box bg={INK} py={7}>
         <Container size="lg">
           <Group justify="space-between">
-            <Text size="xs" c="white" tt="uppercase" fw={600}>
+            <Text size="xs" c="white" tt="uppercase" fw={600} style={{ fontFamily: "sans-serif", letterSpacing: 1 }}>
               {formatDate(new Date().toISOString())}
             </Text>
-            <Text size="xs" c="white" tt="uppercase">
-              LiveUpdate24 • Digital Edition
+            <Text size="xs" c="white" tt="uppercase" style={{ fontFamily: "sans-serif", letterSpacing: 1 }}>
+              LiveUpdate24 · Digital Edition
             </Text>
           </Group>
         </Container>
@@ -308,19 +341,14 @@ export default function NewspaperPage() {
 
       <Container size="lg" py={30}>
         {/* ========== MASTHEAD ========== */}
-        <Paper
-          radius={0}
-          p={0}
-          mb="lg"
-          style={{ background: "white", border: "3px solid #1a1a1a" }}
-        >
+        <Paper radius={0} p={0} mb="xl" style={{ background: "white", border: `3px solid ${INK}` }}>
           <Box px="md" pt="md" pb="xs">
             <Group justify="space-between" mb={4}>
-              <Text size="xs" tt="uppercase" fw={700} c="dimmed">
-                Established 2024
+              <Text size="xs" fw={700} c="dimmed" style={{ fontFamily: "sans-serif" }}>
+                LiveUpdate24.online
               </Text>
-              <Text size="xs" tt="uppercase" fw={700} c="dimmed">
-                Vol. 01 • No. 24
+              <Text size="xs" fw={700} c="dimmed" style={{ fontFamily: "sans-serif" }}>
+                Vol. 01 · No. 24
               </Text>
             </Group>
 
@@ -328,29 +356,22 @@ export default function NewspaperPage() {
               order={1}
               ta="center"
               style={{
-                fontFamily: "'Times New Roman', Times, serif",
-                fontSize: "clamp(48px, 9vw, 82px)",
+                fontFamily: SERIF,
+                fontSize: "clamp(48px, 9vw, 84px)",
                 fontWeight: 900,
                 letterSpacing: "-2px",
                 lineHeight: 0.85,
                 margin: "8px 0 6px",
+                color: INK,
               }}
             >
-              DAILY NEWS
+              LiveUpdate24
             </Title>
           </Box>
 
-          {/* Black sub-header bar like the template */}
-          <Box bg="#1a1a1a" py={8} px="md">
-            <Text
-              ta="center"
-              size="sm"
-              c="white"
-              fw={600}
-              tt="uppercase"
-              style={{ letterSpacing: 4 }}
-            >
-              LiveUpdate24 — India’s Fastest Digital Newspaper
+          <Box bg={INK} py={9} px="md" style={{ borderTop: `2px solid ${ACCENT}` }}>
+            <Text ta="center" size="sm" c="white" fw={600} style={{ fontFamily: "sans-serif", letterSpacing: 3 }}>
+              LiveUpdate24 — World's Fastest Digital Newspaper
             </Text>
           </Box>
         </Paper>
@@ -368,23 +389,35 @@ export default function NewspaperPage() {
           Back to LiveUpdate24
         </Button>
 
-        {/* ========== MAIN CONTENT - matches template layout ========== */}
+        {/* ========== MAIN CONTENT ========== */}
         <Grid >
           {/* LEFT - Main Headline + body */}
           <Grid.Col span={{ base: 12, md: 7 }}>
             {featured && (
-              <Box
-                style={{ cursor: "pointer" }}
-                onClick={() => openNews(featured)}
-              >
+              <Box className="story-block" style={{ cursor: "pointer" }} onClick={() => openNews(featured)}>
+                {featured.isBreaking && (
+                  <Badge
+                    color={ACCENT}
+                    size="md"
+                    radius={0}
+                    leftSection={<IconFlame size={13} />}
+                    mb="sm"
+                    style={{ fontFamily: "sans-serif" }}
+                  >
+                    Breaking
+                  </Badge>
+                )}
                 <Title
                   order={2}
+                  className="story-title"
                   style={{
-                    fontFamily: "'Times New Roman', Times, serif",
-                    fontSize: "clamp(28px, 4.5vw, 42px)",
+                    fontFamily: SERIF,
+                    fontSize: "clamp(28px, 4.5vw, 44px)",
                     fontWeight: 800,
-                    lineHeight: 1.1,
+                    lineHeight: 1.08,
+                    letterSpacing: "-0.5px",
                     marginBottom: 16,
+                    color: INK,
                   }}
                 >
                   {featured.title}
@@ -396,18 +429,16 @@ export default function NewspaperPage() {
                     radius={0}
                     mb="md"
                     alt={featured.title}
-                    style={{ border: "1px solid #ccc" }}
+                    style={{ border: `1px solid ${RULE}` }}
                   />
                 )}
 
-                <Text size="md" style={{ lineHeight: 1.7 }}>
+                <Text size="md" style={{ lineHeight: 1.75, maxWidth: 560 }}>
                   {featured.shortDescription ||
                     (featured.content ? featured.content.slice(0, 420) + "..." : "")}
                 </Text>
 
-                <Text size="sm" c="red" fw={700} mt="md">
-                  Read the full story →
-                </Text>
+                <ReadMore />
               </Box>
             )}
           </Grid.Col>
@@ -416,18 +447,22 @@ export default function NewspaperPage() {
           <Grid.Col span={{ base: 12, md: 5 }}>
             {sideStory && (
               <Box
+                className="story-block"
                 mb="xl"
-                style={{ cursor: "pointer" }}
+                pb="xl"
+                style={{ cursor: "pointer", borderBottom: `1px solid ${RULE}` }}
                 onClick={() => openNews(sideStory)}
               >
                 <Title
                   order={3}
+                  className="story-title"
                   style={{
-                    fontFamily: "'Times New Roman', Times, serif",
-                    fontSize: "clamp(20px, 3vw, 26px)",
+                    fontFamily: SERIF,
+                    fontSize: "clamp(20px, 3vw, 27px)",
                     fontWeight: 800,
-                    lineHeight: 1.2,
+                    lineHeight: 1.18,
                     marginBottom: 12,
+                    color: INK,
                   }}
                 >
                   {sideStory.title}
@@ -438,58 +473,59 @@ export default function NewspaperPage() {
                     src={sideStory.image}
                     radius={0}
                     mb="sm"
-                    h={160}
+                    h={170}
                     fit="cover"
                     alt={sideStory.title}
-                    style={{ border: "1px solid #ccc" }}
+                    style={{ border: `1px solid ${RULE}` }}
                   />
                 )}
 
                 <Text size="sm" style={{ lineHeight: 1.6 }} lineClamp={4}>
                   {sideStory.shortDescription}
                 </Text>
-                <Text size="xs" c="red" fw={700} mt={8}>
-                  Read more →
-                </Text>
+                <ReadMore compact />
               </Box>
             )}
-
-            <Divider size={2} color="#1a1a1a" mb="md" />
 
             <Title
               order={4}
               mb="md"
               style={{
-                fontFamily: "'Times New Roman', Times, serif",
+                fontFamily: SERIF,
                 fontWeight: 800,
-                borderBottom: "2px solid #1a1a1a",
-                paddingBottom: 4,
+                borderBottom: `2px solid ${INK}`,
+                paddingBottom: 6,
                 display: "inline-block",
+                color: INK,
               }}
             >
               More Stories
             </Title>
 
-            <Stack gap="md">
-              {moreStories.map((item) => (
+            <Stack gap={0}>
+              {moreStories.map((item, i) => (
                 <Box
                   key={item.id}
-                  style={{ cursor: "pointer" }}
+                  className="story-block"
+                  py="md"
+                  style={{
+                    cursor: "pointer",
+                    borderBottom: i < moreStories.length - 1 ? `1px solid ${RULE}` : "none",
+                  }}
                   onClick={() => openNews(item)}
                 >
                   <Text
                     fw={700}
                     size="sm"
-                    style={{
-                      fontFamily: "'Times New Roman', Times, serif",
-                      lineHeight: 1.3,
-                    }}
+                    className="story-title"
+                    style={{ fontFamily: SERIF, lineHeight: 1.3, color: INK }}
                   >
                     {item.title}
                   </Text>
-                  <Text size="xs" c="dimmed" mt={2} lineClamp={2}>
+                  <Text size="xs" c="dimmed" mt={4} lineClamp={2}>
                     {item.shortDescription}
                   </Text>
+                  <ReadMore compact />
                 </Box>
               ))}
             </Stack>
@@ -497,40 +533,54 @@ export default function NewspaperPage() {
         </Grid>
 
         {/* ========== BOTTOM SECTION ========== */}
-        <Divider my={40} size={2} color="#1a1a1a" />
+        <Divider my={40} size={2} color={INK} />
+
+        <Title
+          order={4}
+          mb="lg"
+          style={{
+            fontFamily: SERIF,
+            fontWeight: 800,
+            borderBottom: `2px solid ${INK}`,
+            paddingBottom: 6,
+            display: "inline-block",
+            color: INK,
+          }}
+        >
+          Around the Edition
+        </Title>
 
         <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="xl">
           {bottomNews.map((item) => (
-            <Box
+            <Paper
               key={item.id}
-              style={{ cursor: "pointer" }}
+              className="news-card"
+              radius={0}
+              withBorder
+              p="md"
+              style={{ cursor: "pointer", borderColor: RULE, background: "white" }}
               onClick={() => openNews(item)}
             >
               <Text
                 fw={700}
                 size="md"
                 mb={6}
-                style={{
-                  fontFamily: "'Times New Roman', Times, serif",
-                  lineHeight: 1.25,
-                }}
+                style={{ fontFamily: SERIF, lineHeight: 1.25, color: INK }}
               >
                 {item.title}
               </Text>
               <Text size="sm" c="dimmed" lineClamp={3}>
                 {item.shortDescription}
               </Text>
-              <Text size="xs" c="red" fw={700} mt={8}>
-                Read more →
-              </Text>
-            </Box>
+              <ReadMore compact />
+            </Paper>
           ))}
         </SimpleGrid>
 
         {/* Footer */}
-        <Divider my={40} size={2} color="#1a1a1a" />
-        <Text ta="center" size="xs" c="dimmed" fw={600} tt="uppercase">
-          © 2026 LiveUpdate24 • All rights reserved • Printed digitally
+        <Divider my={40} size={2} color={INK} />
+        <Text ta="center" size="xs" c="dimmed" fw={600} style={{ fontFamily: "sans-serif", letterSpacing: 1 }}>
+          © 2026 LiveUpdate24 · All rights reserved · Printed digitally
         </Text>
       </Container>
     </Box>

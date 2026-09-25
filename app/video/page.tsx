@@ -348,7 +348,7 @@ export default function NewspaperPage() {
           <Group justify="space-between" align="flex-start" mb="sm">
             <Box>
               <Text size="xs" tt="uppercase" fw={700} c="dimmed">
-                Established 2024
+                LiveUpdate24.online
               </Text>
             </Box>
             <Badge
@@ -374,7 +374,7 @@ export default function NewspaperPage() {
               margin: "10px 0 8px",
             }}
           >
-            DAILY NEWS
+            LiveUpdate24
           </Title>
 
           <Text
@@ -384,7 +384,7 @@ export default function NewspaperPage() {
             tt="uppercase"
             style={{ letterSpacing: 3 }}
           >
-            LiveUpdate24 — India’s Fastest Digital Newspaper
+            LiveUpdate24 — World's Fastest Digital Newspaper
           </Text>
 
           <Divider my="md" color="#1a1a1a" size={2} />
