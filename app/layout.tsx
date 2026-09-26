@@ -9,6 +9,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "LiveUpdate24",
   description: "Real-time news updates with Mantine UI",
+
+  verification: {
+    google: "GVG_OCEzgttK3EbM1V9pg7Q004fLZ6yexcCv0Mm_e-Y",
+  },
+
   icons: {
     icon: "/i.png",
     shortcut: "/i.png",
