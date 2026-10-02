@@ -531,6 +531,10 @@ export default function Home() {
               <Button component="a" href="/chap" target="_blank">
                 Paper-3
               </Button>
+              <Button><a href="https://flixora-movi.base44.app" target="_blank" rel="noopener noreferrer">
+                Flixora-movies
+              </a></Button>
+              
               </Group>
           
           <Container size="lg">
