@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "Real-time news updates with Mantine UI",
 
   verification: {
-    google: "GVG_OCEzgttK3EbM1V9pg7Q004fLZ6yexcCv0Mm_e-Y",
+    google: "7yikhZH0y2BxhH8JMaKeXQ7ha9FYNC76Pa5RevQzx-0",
   },
 
   icons: {
