@@ -521,7 +521,11 @@ export default function Home() {
 
         {/* Categories */}
         <Box style={{ borderTop: "1px solid #f0f0f0" }}>
-          <Group justify="flex-start"  gap={12}> <Button component="a" href="/paper" target="_blank" >
+          <Group justify="flex-start"  gap={12}>
+             <Button component="a" href="/home" target="_blank" >
+                Home
+              </Button> 
+             <Button component="a" href="/paper" target="_blank" >
                 Paper
               </Button> 
               
